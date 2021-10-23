@@ -1,0 +1,33 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  build:
+    desc: Build module
+    silent: false
+    dir: cmd
+    cmds:
+      - go build -o ../output/rpi-feeder .
+    sources:
+      - ../**/*.go
+      - go.mod
+    generates:
+      - ../output/rpi-feeder
+    method: checksum
+    
+  build-pi:
+    desc: Build module for RPi
+    silent: false
+    dir: cmd
+    cmds:
+      - GOOS=linux GOARCH=arm go build -o ../output/pi/rpi-feeder .
+    sources:
+      - ../**/*.go
+      - go.mod
+    generates:
+      - ../output/pi/rpi-feeder
+    method: checksum
