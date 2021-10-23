@@ -31,3 +31,8 @@ tasks:
     generates:
       - ../output/pi/rpi-feeder
     method: checksum
+
+  lint:
+    cmds:
+      - golangci-lint run
+    silent: false

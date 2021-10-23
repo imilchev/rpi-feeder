@@ -41,15 +41,16 @@ func (fm *FeederManager) Start(dbPath string) error {
 	servoController.RotateCounterClockwise()
 
 	for {
-		select {
-		case <-interrupt:
-			zap.S().Info("Shutting down...")
+		//select {
+		//case <-interrupt:
+		<-interrupt
+		zap.S().Info("Shutting down...")
 
-			servoController.Close()
-			dbManager.Close()
+		servoController.Close()
+		dbManager.Close()
 
-			zap.S().Info("Exit")
-			return nil
-		}
+		zap.S().Info("Exit")
+		return nil
+		//}
 	}
 }

@@ -35,7 +35,7 @@ func newFeederCmd() *cobra.Command {
 			if err := initLogger(debug); err != nil {
 				panic(err)
 			}
-			defer zap.S().Sync()
+			defer zap.S().Sync() //nolint
 
 			fm := feeder.NewFeederManager()
 			return fm.Start(args[0])
