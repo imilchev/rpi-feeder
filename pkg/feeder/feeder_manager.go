@@ -13,7 +13,9 @@ import (
 )
 
 type FeederManager struct {
-	config *config.Config
+	config          *config.Config
+	dbManager       db.DbManager
+	servoController servo.ServoController
 }
 
 func NewFeederManager(configPath string) (*FeederManager, error) {
@@ -22,7 +24,18 @@ func NewFeederManager(configPath string) (*FeederManager, error) {
 		return nil, err
 	}
 
-	return &FeederManager{config: config}, nil
+	dbManager, err := db.NewDbManager(config.DbPath)
+	if err != nil {
+		return nil, err
+	}
+
+	servoController, err := servo.NewServoController(config.ServoPin)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FeederManager{
+		config: config, dbManager: dbManager, servoController: servoController}, nil
 }
 
 func (fm *FeederManager) Start() error {
@@ -30,22 +43,17 @@ func (fm *FeederManager) Start() error {
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	zap.S().Info("Feeder started.")
-	dbManager, err := db.NewDbManager(fm.config.DbPath)
-	if err != nil {
+
+	// fm.servoController.RotateClockwise()
+	// time.Sleep(3 * time.Second)
+	// zap.S().Debugf("Sending stop signal...")
+	// fm.servoController.Stop()
+
+	// fm.servoController.RotateCounterClockwise()
+
+	if err := fm.feed(3); err != nil {
 		return err
 	}
-
-	servoController, err := servo.NewServoController(17)
-	if err != nil {
-		return err
-	}
-
-	servoController.RotateClockwise()
-	time.Sleep(3 * time.Second)
-	zap.S().Debugf("Sending stop signal...")
-	servoController.Stop()
-
-	servoController.RotateCounterClockwise()
 
 	for {
 		//select {
@@ -53,12 +61,25 @@ func (fm *FeederManager) Start() error {
 		<-interrupt
 		zap.S().Info("Shutting down...")
 
-		servoController.Stop()
-		servoController.Close()
-		dbManager.Close()
+		fm.servoController.Stop()
+		fm.servoController.Close()
+		fm.dbManager.Close()
 
 		zap.S().Info("Exit")
 		return nil
 		//}
 	}
+}
+
+func (fm *FeederManager) feed(portions int) error {
+	zap.S().Debugf("Serving %d portions...", portions)
+	fm.servoController.RotateClockwise()
+
+	for i := 0; i < portions; i++ {
+		time.Sleep(time.Duration(fm.config.PortionMs) * time.Millisecond)
+	}
+	fm.servoController.Stop()
+	zap.S().Infof("Served %d portions.", portions)
+
+	return nil
 }

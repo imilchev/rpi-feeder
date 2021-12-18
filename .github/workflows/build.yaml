@@ -10,7 +10,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/imilchev/go-devcontainer:v1.1.0
+      image: ghcr.io/imilchev/go-devcontainer:1.17.5
     steps:
       - uses: actions/checkout@v2
 
@@ -19,3 +19,12 @@ jobs:
 
       - name: Build
         run: task build
+
+      - name: Test
+        run: task test
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v2
+        with:
+          name: unit-test-coverage
+          path: output/coverage.html

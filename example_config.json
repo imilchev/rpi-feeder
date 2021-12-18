@@ -1,3 +1,5 @@
 {
-    "dbPath": "./output"
+    "dbPath": "./output",
+    "servoPin": 17,
+    "portionMs": 1000 
 }

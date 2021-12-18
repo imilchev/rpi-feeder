@@ -36,3 +36,11 @@ tasks:
     cmds:
       - golangci-lint run
     silent: false
+
+  test:
+    cmds:
+      - mkdir -p output
+      - CGO_ENABLED=0 go test -v -coverprofile=output/c.out -timeout 120s {{.UNIT_TEST_PACKAGES}}
+      - go tool cover -html=output/c.out -o ./output/coverage.html
+    vars:
+      UNIT_TEST_PACKAGES: ./pkg/...
