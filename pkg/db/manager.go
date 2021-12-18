@@ -61,7 +61,11 @@ func (m *dbManager) AddFeedLog(log model.FeedLog) error {
 		if err != nil {
 			return err
 		}
-		return bucket.Put(itob(log.Id), data)
+		if err := bucket.Put(itob(log.Id), data); err != nil {
+			return err
+		}
+		zap.S().Debugf("Written feed log %+v.", log)
+		return nil
 	})
 }
 

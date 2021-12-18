@@ -19,7 +19,7 @@ tasks:
       - ../output/rpi-feeder
     method: checksum
     
-  build-pi:
+  build:pi:
     desc: Build module for RPi
     silent: false
     dir: cmd

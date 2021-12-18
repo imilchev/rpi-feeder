@@ -8,7 +8,9 @@ import (
 
 	"github.com/imilchev/rpi-feeder/pkg/config"
 	"github.com/imilchev/rpi-feeder/pkg/db"
+	"github.com/imilchev/rpi-feeder/pkg/db/model"
 	"github.com/imilchev/rpi-feeder/pkg/servo"
+	"github.com/imilchev/rpi-feeder/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -21,6 +23,10 @@ type FeederManager struct {
 func NewFeederManager(configPath string) (*FeederManager, error) {
 	config, err := config.ReadConfig(configPath)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := utils.Validate.Struct(config); err != nil {
 		return nil, err
 	}
 
@@ -71,15 +77,18 @@ func (fm *FeederManager) Start() error {
 	}
 }
 
-func (fm *FeederManager) feed(portions int) error {
+func (fm *FeederManager) feed(portions uint) error {
 	zap.S().Debugf("Serving %d portions...", portions)
 	fm.servoController.RotateClockwise()
 
-	for i := 0; i < portions; i++ {
+	for i := uint(0); i < portions; i++ {
 		time.Sleep(time.Duration(fm.config.PortionMs) * time.Millisecond)
 	}
 	fm.servoController.Stop()
 	zap.S().Infof("Served %d portions.", portions)
-
-	return nil
+	feedLog := model.FeedLog{
+		Portions:  portions,
+		Timestamp: time.Now().UTC(),
+	}
+	return fm.dbManager.AddFeedLog(feedLog)
 }
