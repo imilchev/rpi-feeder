@@ -7,16 +7,11 @@ import (
 	"go.uber.org/zap"
 )
 
-type ServoController interface {
-	RotateClockwise()
-	RotateCounterClockwise()
-	Stop()
-	Close()
-}
-
 type servoController struct {
-	pin      rpio.Pin
-	stopChan chan struct{}
+	pin         rpio.Pin
+	stopChan    chan struct{}
+	stoppedChan chan struct{}
+	isRotating  bool
 }
 
 func NewServoController(pinNumber uint8) (ServoController, error) {
@@ -30,11 +25,16 @@ func NewServoController(pinNumber uint8) (ServoController, error) {
 	pin.Mode(rpio.Output)
 	zap.S().Infof(
 		"Initialized GPIO library. Using pin %d to control the servo.", uint8(pin))
-	return &servoController{pin: pin, stopChan: make(chan struct{})}, nil
+	return &servoController{
+		pin:         pin,
+		stopChan:    make(chan struct{}),
+		stoppedChan: make(chan struct{}),
+	}, nil
 }
 
 func (sc *servoController) RotateClockwise() {
 	zap.S().Debug("Rotating servo clockwise...")
+	sc.isRotating = true
 	go func() {
 		for {
 			select {
@@ -42,9 +42,10 @@ func (sc *servoController) RotateClockwise() {
 				sc.pin.High()
 				time.Sleep(2 * time.Millisecond)
 				sc.pin.Low()
-				time.Sleep(18 * time.Millisecond)
+				time.Sleep(17 * time.Millisecond)
 			case <-sc.stopChan:
 				zap.S().Debug("Servo rotation stopped.")
+				sc.stoppedChan <- struct{}{}
 				return
 			}
 		}
@@ -53,6 +54,7 @@ func (sc *servoController) RotateClockwise() {
 
 func (sc *servoController) RotateCounterClockwise() {
 	zap.S().Debug("Rotating servo counter-clockwise...")
+	sc.isRotating = true
 	go func() {
 		for {
 			select {
@@ -63,6 +65,7 @@ func (sc *servoController) RotateCounterClockwise() {
 				time.Sleep(19 * time.Millisecond)
 			case <-sc.stopChan:
 				zap.S().Debug("Servo rotation stopped.")
+				sc.stoppedChan <- struct{}{}
 				return
 			}
 		}
@@ -70,11 +73,19 @@ func (sc *servoController) RotateCounterClockwise() {
 }
 
 func (sc *servoController) Stop() {
-	sc.stopChan <- struct{}{}
+	if sc.isRotating {
+		sc.stopChan <- struct{}{}
+		<-sc.stoppedChan
+		sc.isRotating = false
+	}
 }
 
 func (sc *servoController) Close() {
+	if sc.isRotating {
+		sc.Stop()
+	}
 	close(sc.stopChan)
+	close(sc.stoppedChan)
 	if err := rpio.Close(); err != nil {
 		zap.S().Errorf("Failed to close GPIO library. %+v", err)
 	}

@@ -16,4 +16,4 @@ RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/loc
 
 # Install golangci-lint
 RUN export PATH="$PATH:$(go env GOPATH)/bin"
-RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.41.0
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.43.0

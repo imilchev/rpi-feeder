@@ -6,24 +6,31 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/imilchev/rpi-feeder/pkg/feeder/db"
-	"github.com/imilchev/rpi-feeder/pkg/feeder/servo"
+	"github.com/imilchev/rpi-feeder/pkg/config"
+	"github.com/imilchev/rpi-feeder/pkg/db"
+	"github.com/imilchev/rpi-feeder/pkg/servo"
 	"go.uber.org/zap"
 )
 
 type FeederManager struct {
+	config *config.Config
 }
 
-func NewFeederManager() *FeederManager {
-	return &FeederManager{}
+func NewFeederManager(configPath string) (*FeederManager, error) {
+	config, err := config.ReadConfig(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FeederManager{config: config}, nil
 }
 
-func (fm *FeederManager) Start(dbPath string) error {
+func (fm *FeederManager) Start() error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	zap.S().Info("Feeder started.")
-	dbManager, err := db.NewDbManager(dbPath)
+	dbManager, err := db.NewDbManager(fm.config.DbPath)
 	if err != nil {
 		return err
 	}
@@ -46,6 +53,7 @@ func (fm *FeederManager) Start(dbPath string) error {
 		<-interrupt
 		zap.S().Info("Shutting down...")
 
+		servoController.Stop()
 		servoController.Close()
 		dbManager.Close()
 

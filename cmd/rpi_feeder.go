@@ -27,7 +27,7 @@ func newRootCmd() *cobra.Command {
 func newFeederCmd() *cobra.Command {
 	var debug bool
 	cmd := &cobra.Command{
-		Use:          "start [dbFolder]",
+		Use:          "start [configFilePath]]",
 		Short:        "Starts the Raspberry Pi automated feeder.",
 		SilenceUsage: true,
 		Args:         cobra.ExactArgs(1),
@@ -37,8 +37,12 @@ func newFeederCmd() *cobra.Command {
 			}
 			defer zap.S().Sync() //nolint
 
-			fm := feeder.NewFeederManager()
-			return fm.Start(args[0])
+			fm, err := feeder.NewFeederManager(args[0])
+			if err != nil {
+				return err
+			}
+
+			return fm.Start()
 		},
 	}
 
