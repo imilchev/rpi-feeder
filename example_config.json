@@ -1,5 +1,13 @@
 {
     "dbPath": "./output",
     "servoPin": 17,
-    "portionMs": 1000 
+    "portionMs": 1000,
+    "mqtt": {
+        "server": "mqtt://host.docker.internal:1883",
+        "username": "dev",
+        "password": "dev",
+        "clientId": "dev1",
+        "keepAlive": 20,
+        "connectRetryDelay": 30
+    }
 }

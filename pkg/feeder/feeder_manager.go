@@ -8,7 +8,9 @@ import (
 
 	"github.com/imilchev/rpi-feeder/pkg/config"
 	"github.com/imilchev/rpi-feeder/pkg/db"
-	"github.com/imilchev/rpi-feeder/pkg/db/model"
+	dbm "github.com/imilchev/rpi-feeder/pkg/db/model"
+	"github.com/imilchev/rpi-feeder/pkg/mqtt"
+	"github.com/imilchev/rpi-feeder/pkg/mqtt/model"
 	"github.com/imilchev/rpi-feeder/pkg/servo"
 	"github.com/imilchev/rpi-feeder/pkg/utils"
 	"go.uber.org/zap"
@@ -18,6 +20,7 @@ type FeederManager struct {
 	config          *config.Config
 	dbManager       db.DbManager
 	servoController servo.ServoController
+	mqttManager     mqtt.MqttManager
 }
 
 func NewFeederManager(configPath string) (*FeederManager, error) {
@@ -40,8 +43,20 @@ func NewFeederManager(configPath string) (*FeederManager, error) {
 		return nil, err
 	}
 
-	return &FeederManager{
-		config: config, dbManager: dbManager, servoController: servoController}, nil
+	fm := &FeederManager{
+		config:          config,
+		dbManager:       dbManager,
+		servoController: servoController,
+	}
+
+	fm.mqttManager, err = mqtt.NewMqttManager(
+		config.Mqtt,
+		func(msg model.FeedMessage) error { return fm.feed(msg.Portions) })
+	if err != nil {
+		return nil, err
+	}
+
+	return fm, nil
 }
 
 func (fm *FeederManager) Start() error {
@@ -57,24 +72,24 @@ func (fm *FeederManager) Start() error {
 
 	// fm.servoController.RotateCounterClockwise()
 
-	if err := fm.feed(3); err != nil {
-		return err
+	//for {
+	//select {
+	//case <-interrupt:
+	<-interrupt
+	zap.S().Info("Shutting down...")
+
+	fm.servoController.Stop()
+	fm.servoController.Close()
+	fm.dbManager.Close()
+	if err := fm.mqttManager.Stop(); err != nil {
+		zap.S().Errorf("Failed to stop MQTT manager. %+v", err)
 	}
 
-	for {
-		//select {
-		//case <-interrupt:
-		<-interrupt
-		zap.S().Info("Shutting down...")
+	zap.S().Info("Exit")
+	return nil
+	//}
+	//}
 
-		fm.servoController.Stop()
-		fm.servoController.Close()
-		fm.dbManager.Close()
-
-		zap.S().Info("Exit")
-		return nil
-		//}
-	}
 }
 
 func (fm *FeederManager) feed(portions uint) error {
@@ -86,9 +101,20 @@ func (fm *FeederManager) feed(portions uint) error {
 	}
 	fm.servoController.Stop()
 	zap.S().Infof("Served %d portions.", portions)
-	feedLog := model.FeedLog{
+
+	// send the log via mqtt and if that fails store it locally
+	msg := model.FeedLogMessage{
 		Portions:  portions,
 		Timestamp: time.Now().UTC(),
 	}
-	return fm.dbManager.AddFeedLog(feedLog)
+	if err := fm.mqttManager.SendFeedLog(msg); err != nil {
+		zap.S().Warnf("Failed to send feed log to server. %v", err)
+
+		feedLog := dbm.FeedLog{
+			Portions:  msg.Portions,
+			Timestamp: msg.Timestamp,
+		}
+		return fm.dbManager.AddFeedLog(feedLog)
+	}
+	return nil
 }
