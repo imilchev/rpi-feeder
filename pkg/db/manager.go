@@ -10,14 +10,17 @@ import (
 )
 
 const (
-	dbName        = "feeder.db"
-	logBucketName = "feeder-log"
+	dbName = "feeder.db"
+)
+
+var (
+	logBucketName = []byte("feeder-log")
 )
 
 func initBuckets(db *bolt.DB) error {
 	zap.S().Debug("Initializing buckets...")
 	return db.Update(func(tx *bolt.Tx) error {
-		if _, err := tx.CreateBucketIfNotExists([]byte(logBucketName)); err != nil {
+		if _, err := tx.CreateBucketIfNotExists(logBucketName); err != nil {
 			return err
 		}
 		zap.S().Debugf("Initialized bucket %s.", logBucketName)
@@ -28,6 +31,7 @@ func initBuckets(db *bolt.DB) error {
 type DbManager interface {
 	AddFeedLog(model.FeedLog) error
 	ListFeedLog() ([]model.FeedLog, error)
+	CleanFeedLog() error
 	Close()
 }
 
@@ -51,7 +55,7 @@ func NewDbManager(path string) (DbManager, error) {
 
 func (m *dbManager) AddFeedLog(log model.FeedLog) error {
 	return m.db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(logBucketName))
+		bucket := tx.Bucket(logBucketName)
 		id, err := bucket.NextSequence()
 		log.Id = int(id)
 		if err != nil {
@@ -72,7 +76,7 @@ func (m *dbManager) AddFeedLog(log model.FeedLog) error {
 func (m *dbManager) ListFeedLog() ([]model.FeedLog, error) {
 	var logs []model.FeedLog
 	err := m.db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(logBucketName))
+		bucket := tx.Bucket(logBucketName)
 
 		return bucket.ForEach(func(k, v []byte) error {
 			l := &model.FeedLog{}
@@ -87,6 +91,18 @@ func (m *dbManager) ListFeedLog() ([]model.FeedLog, error) {
 		return nil, err
 	}
 	return logs, nil
+}
+
+func (m *dbManager) CleanFeedLog() error {
+	err := m.db.Update(func(tx *bolt.Tx) error {
+		if err := tx.DeleteBucket(logBucketName); err != nil {
+			return err
+		}
+
+		_, err := tx.CreateBucket(logBucketName)
+		return err
+	})
+	return err
 }
 
 func (m *dbManager) Close() {

@@ -17,7 +17,7 @@ import (
 type FeedHandler func(model.FeedMessage) error
 
 type MqttManager interface {
-	SendFeedLog(msg model.FeedLogMessage) error
+	SendFeedLog(msg model.FeedLogCollectionMessage) error
 	Stop() error
 }
 
@@ -112,7 +112,7 @@ func (m *mqttManager) Stop() error {
 	return err
 }
 
-func (m *mqttManager) SendFeedLog(msg model.FeedLogMessage) error {
+func (m *mqttManager) SendFeedLog(msg model.FeedLogCollectionMessage) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err

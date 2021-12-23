@@ -65,6 +65,10 @@ func (fm *FeederManager) Start() error {
 
 	zap.S().Info("Feeder started.")
 
+	if err := fm.flushFeedLog(); err != nil {
+		zap.S().Error("Failed to flush feed log. %v", err)
+	}
+
 	// fm.servoController.RotateClockwise()
 	// time.Sleep(3 * time.Second)
 	// zap.S().Debugf("Sending stop signal...")
@@ -87,9 +91,32 @@ func (fm *FeederManager) Start() error {
 
 	zap.S().Info("Exit")
 	return nil
-	//}
-	//}
+}
 
+func (fm *FeederManager) flushFeedLog() error {
+	feedLog, err := fm.dbManager.ListFeedLog()
+	if err != nil {
+		zap.S().Error("Failed to list feed log.")
+		return err
+	}
+
+	if len(feedLog) == 0 {
+		zap.S().Info("No feed logs have to be flushed.")
+		return nil
+	}
+
+	zap.S().Infof("Found %d feed logs to be flushed.", len(feedLog))
+	msg := model.FeedLogCollectionMessage{}
+	for _, f := range feedLog {
+		fmsg := model.FeedLogMessage{Portions: f.Portions, Timestamp: f.Timestamp}
+		msg.Value = append(msg.Value, fmsg)
+	}
+	if err := fm.mqttManager.SendFeedLog(msg); err != nil {
+		zap.S().Error("Failed to send feed log.")
+		return err
+	}
+	zap.S().Info("Feed log flushed.")
+	return fm.dbManager.CleanFeedLog()
 }
 
 func (fm *FeederManager) feed(portions uint) error {
@@ -103,16 +130,17 @@ func (fm *FeederManager) feed(portions uint) error {
 	zap.S().Infof("Served %d portions.", portions)
 
 	// send the log via mqtt and if that fails store it locally
-	msg := model.FeedLogMessage{
-		Portions:  portions,
-		Timestamp: time.Now().UTC(),
+	msg := model.FeedLogCollectionMessage{
+		Value: []model.FeedLogMessage{
+			{Portions: portions, Timestamp: time.Now().UTC()},
+		},
 	}
 	if err := fm.mqttManager.SendFeedLog(msg); err != nil {
 		zap.S().Warnf("Failed to send feed log to server. %v", err)
 
 		feedLog := dbm.FeedLog{
-			Portions:  msg.Portions,
-			Timestamp: msg.Timestamp,
+			Portions:  msg.Value[0].Portions,
+			Timestamp: msg.Value[0].Timestamp,
 		}
 		return fm.dbManager.AddFeedLog(feedLog)
 	}
