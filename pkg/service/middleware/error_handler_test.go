@@ -43,7 +43,8 @@ func (suite *ErrorHandlerSuite) TestDoesNotExistErrorHandling() {
 	res := &models.ApiError{}
 	suite.NoError(json.Unmarshal(suite.ctx.Response.Body(), res))
 
-	suite.Equal(msg, res.Message)
+	expected := models.NewDoesNotExistError(msg, msg, msg)
+	suite.Equal(expected.Message, res.Message)
 }
 
 func (suite *ErrorHandlerSuite) TestAlreadyExistsErrorHandling() {
@@ -56,7 +57,8 @@ func (suite *ErrorHandlerSuite) TestAlreadyExistsErrorHandling() {
 	res := &models.ApiError{}
 	suite.NoError(json.Unmarshal(suite.ctx.Response.Body(), res))
 
-	suite.Equal(msg, res.Message)
+	expected := models.NewAlreadyExistsError(msg, msg, msg)
+	suite.Equal(expected.Message, res.Message)
 }
 
 func (suite *ErrorHandlerSuite) TestValidationErrorHandling() {

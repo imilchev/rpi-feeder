@@ -12,6 +12,8 @@ func ErrorHandler(ctx *fiber.Ctx, err error) error {
 	// Retrieve the custom status code if it's an *models.ApiError
 	if e, ok := err.(*models.ApiError); ok {
 		code = e.Code()
+	} else {
+		err = models.NewApiError(code, err.Error())
 	}
 
 	// Send custom error page
