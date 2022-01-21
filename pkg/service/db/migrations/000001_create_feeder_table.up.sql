@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS feeders(
    client_id VARCHAR (60) PRIMARY KEY,
-   software_version VARCHAR (60) UNIQUE NOT NULL,
-   status VARCHAR (60) UNIQUE NOT NULL,
+   software_version VARCHAR (60) NOT NULL,
+   status VARCHAR (60) NOT NULL,
    last_online TIMESTAMP WITH TIME ZONE DEFAULT NULL
 );

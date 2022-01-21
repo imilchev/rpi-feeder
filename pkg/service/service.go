@@ -25,6 +25,7 @@ type Service struct {
 	app          *fiber.App
 	db           *db.Database
 	feedersRepo  repos.FeedersRepository
+	feedLogsRepo repos.FeedLogsRepository
 	mqtt         mqtt.MqttManager
 	shutdownChan chan os.Signal
 	controllers  []controllers.Controller
@@ -55,10 +56,11 @@ func NewService(configPath string) (*Service, error) {
 		app:          fiber.New(fCfg),
 		db:           db,
 		feedersRepo:  repos.NewFeedersRepository(db.DB),
+		feedLogsRepo: repos.NewFeedLogsRepository(db.DB),
 		shutdownChan: make(chan os.Signal, 1),
 	}
 
-	mqtt, err := mqtt.NewMqttManager(cfg.Mqtt, app.updateFeederStatus)
+	mqtt, err := mqtt.NewMqttManager(cfg.Mqtt, app.updateFeederStatus, app.storeFeedLogs)
 	if err != nil {
 		return nil, err
 	}
@@ -146,5 +148,24 @@ func (s *Service) updateFeederStatus(clientId string, msg model.StatusMessage) e
 	}
 
 	_, err = s.feedersRepo.UpdateFeeder(m)
+	return err
+}
+
+func (s *Service) storeFeedLogs(clientId string, msg model.FeedLogCollectionMessage) error {
+	_, err := s.feedersRepo.GetFeederByClientId(clientId)
+	if err != nil {
+		return err
+	}
+
+	var f []models.FeedLog
+	for _, m := range msg.Value {
+		f = append(f, models.FeedLog{
+			ClientId:  clientId,
+			Portions:  m.Portions,
+			Timestamp: m.Timestamp,
+		})
+	}
+
+	_, err = s.feedLogsRepo.CreateFeedLogs(f)
 	return err
 }

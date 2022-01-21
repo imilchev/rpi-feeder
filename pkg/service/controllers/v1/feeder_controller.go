@@ -14,26 +14,50 @@ import (
 )
 
 type FeederController struct {
-	repo repos.FeedersRepository
-	mqtt mqtt.MqttManager
+	feedersRepo  repos.FeedersRepository
+	feedLogsRepo repos.FeedLogsRepository
+	mqtt         mqtt.MqttManager
 }
 
 func NewFeederController(db *gorm.DB, mqtt mqtt.MqttManager) *FeederController {
-	return &FeederController{mqtt: mqtt, repo: repos.NewFeedersRepository(db)}
+	return &FeederController{
+		mqtt:         mqtt,
+		feedersRepo:  repos.NewFeedersRepository(db),
+		feedLogsRepo: repos.NewFeedLogsRepository(db),
+	}
 }
 
 func (c *FeederController) RegisterHandlers(a *fiber.App) {
 	route := a.Group(apiGroup)
 	route.Get("/feeder", c.GetFeeders)
+	route.Get("/feeder/:clientId/log", c.GetFeedLogsForFeeder)
 	route.Post("/feeder/:clientId/feed", c.FeedPortions)
 }
 
 func (c *FeederController) GetFeeders(ctx *fiber.Ctx) error {
-	feeders, err := c.repo.GetFeeders()
+	feeders, err := c.feedersRepo.GetFeeders()
 	if err != nil {
 		return err
 	}
 	return ctx.Status(http.StatusOK).JSON(feeders)
+}
+
+func (c *FeederController) GetFeedLogsForFeeder(ctx *fiber.Ctx) error {
+	clientId := ctx.Params("clientId")
+	if clientId == "" {
+		return models.NewValidationError("Missing clientId.")
+	}
+
+	_, err := c.feedersRepo.GetFeederByClientId(clientId)
+	if err != nil {
+		return err
+	}
+
+	feedLogs, err := c.feedLogsRepo.GetLogsForFeeder(clientId)
+	if err != nil {
+		return err
+	}
+	return ctx.Status(http.StatusOK).JSON(feedLogs)
 }
 
 func (c *FeederController) FeedPortions(ctx *fiber.Ctx) error {
@@ -42,7 +66,7 @@ func (c *FeederController) FeedPortions(ctx *fiber.Ctx) error {
 		return models.NewValidationError("Missing clientId.")
 	}
 
-	feeder, err := c.repo.GetFeederByClientId(clientId)
+	feeder, err := c.feedersRepo.GetFeederByClientId(clientId)
 	if err != nil {
 		return err
 	}
