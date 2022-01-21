@@ -24,6 +24,7 @@ type Service struct {
 	config       config.Config
 	app          *fiber.App
 	db           *db.Database
+	feedersRepo  repos.FeedersRepository
 	mqtt         mqtt.MqttManager
 	shutdownChan chan os.Signal
 	controllers  []controllers.Controller
@@ -49,46 +50,23 @@ func NewService(configPath string) (*Service, error) {
 		return nil, err
 	}
 
-	feedersRepo := repos.NewFeedersRepository(db.DB)
-	mqtt, err := mqtt.NewMqttManager(cfg.Mqtt, func(clientId string, msg model.StatusMessage) error {
-		m := models.Feeder{
-			ClientId:        clientId,
-			SoftwareVersion: msg.SoftwareVersion,
-			Status:          string(msg.Status),
-		}
-		if msg.Status == model.OfflineStatus {
-			t := time.Now()
-			m.LastOnline = &t
-		}
-
-		zap.S().Debugf("1 %+v", msg)
-		_, err := feedersRepo.GetFeederByClientId(clientId)
-		if err != nil {
-			if _, err := feedersRepo.CreateFeeder(m); err != nil {
-				zap.S().Debug("2")
-				return err
-			}
-			return nil
-		}
-
-		_, err = feedersRepo.UpdateFeeder(m)
-		zap.S().Debug("3")
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	app := &Service{
 		config:       *cfg,
 		app:          fiber.New(fCfg),
 		db:           db,
-		mqtt:         mqtt,
+		feedersRepo:  repos.NewFeedersRepository(db.DB),
 		shutdownChan: make(chan os.Signal, 1),
-		controllers: []controllers.Controller{
-			v1.NewUsersController(nil, mqtt),
-		},
 	}
+
+	mqtt, err := mqtt.NewMqttManager(cfg.Mqtt, app.updateFeederStatus)
+	if err != nil {
+		return nil, err
+	}
+	app.mqtt = mqtt
+	app.controllers = []controllers.Controller{
+		v1.NewFeederController(db.DB, mqtt),
+	}
+
 	signal.Notify(app.shutdownChan, os.Interrupt) // Catch OS signals.
 	app.registerHandlers()
 	return app, nil
@@ -146,4 +124,27 @@ func (a *Service) registerHandlers() {
 	for _, c := range a.controllers {
 		c.RegisterHandlers(a.app)
 	}
+}
+
+func (s *Service) updateFeederStatus(clientId string, msg model.StatusMessage) error {
+	m := models.Feeder{
+		ClientId:        clientId,
+		SoftwareVersion: msg.SoftwareVersion,
+		Status:          msg.Status,
+	}
+	if msg.Status == model.OfflineStatus {
+		t := time.Now()
+		m.LastOnline = &t
+	}
+
+	_, err := s.feedersRepo.GetFeederByClientId(clientId)
+	if err != nil {
+		if _, err := s.feedersRepo.CreateFeeder(m); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	_, err = s.feedersRepo.UpdateFeeder(m)
+	return err
 }

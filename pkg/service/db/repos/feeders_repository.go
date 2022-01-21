@@ -6,7 +6,6 @@ import (
 	dbm "github.com/imilchev/rpi-feeder/pkg/service/db/models"
 	"github.com/imilchev/rpi-feeder/pkg/service/models"
 	"github.com/imilchev/rpi-feeder/pkg/utils"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -82,7 +81,6 @@ func (r *feedersRepository) UpdateFeeder(f models.Feeder) (models.Feeder, error)
 	}
 
 	dbModel.FromApi(f)
-	zap.S().Debugf("%+v", dbModel)
 	if res := r.db.Model(dbModel).Where("client_id = ?", f.ClientId).
 		Select("status", "last_online", "software_version").
 		Updates(dbModel); res.Error != nil {
