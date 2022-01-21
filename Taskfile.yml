@@ -44,3 +44,9 @@ tasks:
       - go tool cover -html=output/c.out -o ./output/coverage.html
     vars:
       UNIT_TEST_PACKAGES: ./pkg/...
+
+  install:migrate:
+    desc: Installs migrate package. Needed to be able to use the migrate CLI.
+    cmds:
+      - go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.15.1
+    silent: true

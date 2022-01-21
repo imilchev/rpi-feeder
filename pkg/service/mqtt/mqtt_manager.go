@@ -3,7 +3,6 @@ package mqtt
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"time"
 
@@ -15,10 +14,10 @@ import (
 	"go.uber.org/zap"
 )
 
-type FeedHandler func(model.FeedMessage) error
+type FeederStatusHandler func(clientId string, msg model.StatusMessage) error
 
 type MqttManager interface {
-	SendFeedLog(msg model.FeedLogCollectionMessage) error
+	SendFeedCommand(clientId string, msg model.FeedMessage) error
 	Stop() error
 }
 
@@ -27,7 +26,7 @@ type mqttManager struct {
 	c        *autopaho.ConnectionManager
 }
 
-func NewMqttManager(cfg config.MqttConfig, fh FeedHandler) (MqttManager, error) {
+func NewMqttManager(cfg config.MqttConfig, fsh FeederStatusHandler) (MqttManager, error) {
 	serverUrl, err := url.Parse(cfg.Server)
 	if err != nil {
 		return nil, err
@@ -35,8 +34,8 @@ func NewMqttManager(cfg config.MqttConfig, fh FeedHandler) (MqttManager, error) 
 
 	router := paho.NewStandardRouter()
 	router.RegisterHandler(
-		fmt.Sprintf("feeder/%s/feed", cfg.ClientId),
-		func(p *paho.Publish) { internalFeedHandler(p, fh) })
+		mqtt.StatusTopic(nil),
+		func(p *paho.Publish) { internalStatusHandler(p, fsh) })
 
 	pahoCfg := autopaho.ClientConfig{
 		BrokerUrls:        []*url.URL{serverUrl},
@@ -44,15 +43,15 @@ func NewMqttManager(cfg config.MqttConfig, fh FeedHandler) (MqttManager, error) 
 		ConnectRetryDelay: time.Duration(cfg.ConnectRetryDelay) * time.Second,
 		OnConnectionUp: func(cm *autopaho.ConnectionManager, connAck *paho.Connack) {
 			zap.S().Info("MQTT connection is up.")
-			msg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OnlineStatus}
-			if err := sendStatusMessage(msg, cm, cfg.ClientId); err != nil {
-				zap.S().Errorf("Failed to send status message. %v", err)
-				return
-			}
+			// msg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OnlineStatus}
+			// if err := sendStatusMessage(msg, cm, cfg.ClientId); err != nil {
+			// 	zap.S().Errorf("Failed to send status message. %v", err)
+			// 	return
+			// }
 
 			if _, err := cm.Subscribe(context.Background(), &paho.Subscribe{
 				Subscriptions: map[string]paho.SubscribeOptions{
-					mqtt.FeedTopic(&cfg.ClientId): {QoS: byte(2)},
+					mqtt.StatusTopic(nil): {QoS: byte(1)},
 				},
 			}); err != nil {
 				zap.S().Errorf("Failed to subscribe (%v). This is likely to mean no messages will be received.", err)
@@ -76,12 +75,12 @@ func NewMqttManager(cfg config.MqttConfig, fh FeedHandler) (MqttManager, error) 
 	}
 	pahoCfg.SetUsernamePassword(cfg.Username, []byte(cfg.Password))
 
-	willMsg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OfflineStatus}
-	willData, err := json.Marshal(willMsg)
-	if err != nil {
-		return nil, err
-	}
-	pahoCfg.SetWillMessage(mqtt.StatusTopic(&cfg.ClientId), willData, byte(1), true)
+	// willMsg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OfflineStatus}
+	// willData, err := json.Marshal(willMsg)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// pahoCfg.SetWillMessage(mqtt.StatusTopic(&cfg.ClientId), willData, byte(1), true)
 
 	// Connect to the broker
 	cm, err := autopaho.NewConnection(context.Background(), pahoCfg)
@@ -99,10 +98,10 @@ func NewMqttManager(cfg config.MqttConfig, fh FeedHandler) (MqttManager, error) 
 }
 
 func (m *mqttManager) Stop() error {
-	msg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OfflineStatus}
-	if err := sendStatusMessage(msg, m.c, m.clientId); err != nil {
-		return err
-	}
+	// msg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OfflineStatus}
+	// if err := sendStatusMessage(msg, m.c, m.clientId); err != nil {
+	// 	return err
+	// }
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -113,44 +112,30 @@ func (m *mqttManager) Stop() error {
 	return err
 }
 
-func (m *mqttManager) SendFeedLog(msg model.FeedLogCollectionMessage) error {
+func (m *mqttManager) SendFeedCommand(clientId string, msg model.FeedMessage) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
 	_, err = m.c.Publish(context.Background(), &paho.Publish{
-		Topic:   mqtt.FeedLogTopic(&m.clientId),
+		Topic:   mqtt.FeedTopic(&clientId),
 		QoS:     byte(2),
 		Payload: data,
 	})
 	return err
 }
 
-func sendStatusMessage(msg model.StatusMessage, cm *autopaho.ConnectionManager, clientId string) error {
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
-
-	_, err = cm.Publish(context.Background(), &paho.Publish{
-		Topic:   mqtt.StatusTopic(&clientId),
-		QoS:     byte(1),
-		Retain:  true,
-		Payload: data,
-	})
-	return err
-}
-
-func internalFeedHandler(p *paho.Publish, fh FeedHandler) {
-	msg := model.FeedMessage{}
+func internalStatusHandler(p *paho.Publish, fsh FeederStatusHandler) {
+	msg := model.StatusMessage{}
 	if err := json.Unmarshal(p.Payload, &msg); err != nil {
 		zap.S().Errorf("Failed to deserialize message %s. %v", string(p.Payload), err)
 		return
 	}
-	if err := fh(msg); err != nil {
-		zap.S().Errorf("Failed to feed %d portions. %v", msg.Portions, err)
+	clientId := mqtt.ClientIdFromTopic(p.Topic)
+	if err := fsh(clientId, msg); err != nil {
+		zap.S().Errorf("Failed to set status for feeder %s. %v", clientId, err)
 		return
 	}
-	zap.S().Infof("Feed %d portions", msg.Portions)
+	zap.S().Infof("Status of feeder %s set to %s", clientId, msg.Status)
 }

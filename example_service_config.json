@@ -1,0 +1,22 @@
+{
+    "server": {
+        "host": "0.0.0.0",
+        "port": 1234,
+        "readTimeout": 30
+    },
+    "database": {
+        "connectionString": "postgres://postgres:SuperSecret@rpi:5432/postgres?sslmode=disable"
+    },
+    "jwt": {
+        "publicKeyPath": "./authd_public.pem",
+        "signingMethod": "RS256"
+    },
+    "mqtt": {
+        "server": "mqtt://rpi:1883",
+        "username": "dev",
+        "password": "dev",
+        "clientId": "dev1",
+        "keepAlive": 20,
+        "connectRetryDelay": 30
+    }
+}

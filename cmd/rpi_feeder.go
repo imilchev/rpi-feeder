@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/imilchev/rpi-feeder/pkg/feeder"
+	"github.com/imilchev/rpi-feeder/pkg/service"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
@@ -20,6 +21,7 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	cmd.AddCommand(newFeederCmd())
+	cmd.AddCommand(newServiceCmd())
 
 	return cmd
 }
@@ -27,7 +29,7 @@ func newRootCmd() *cobra.Command {
 func newFeederCmd() *cobra.Command {
 	var debug bool
 	cmd := &cobra.Command{
-		Use:          "start [configFilePath]]",
+		Use:          "start [configFilePath]",
 		Short:        "Starts the Raspberry Pi automated feeder.",
 		SilenceUsage: true,
 		Args:         cobra.ExactArgs(1),
@@ -43,6 +45,37 @@ func newFeederCmd() *cobra.Command {
 			}
 
 			return fm.Start()
+		},
+	}
+
+	cmd.Flags().BoolVar(
+		&debug,
+		"debug",
+		false,
+		"Enable debug logging.")
+
+	return cmd
+}
+
+func newServiceCmd() *cobra.Command {
+	var debug bool
+	cmd := &cobra.Command{
+		Use:          "web-start [configFilePath]]",
+		Short:        "Starts the Raspberry Pi automated feeder web service.",
+		SilenceUsage: true,
+		Args:         cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := initLogger(debug); err != nil {
+				panic(err)
+			}
+			defer zap.S().Sync() //nolint
+
+			app, err := service.NewService(args[0])
+			if err != nil {
+				return err
+			}
+			app.StartServerWithGracefulShutdown()
+			return nil
 		},
 	}
 
