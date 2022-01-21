@@ -6,12 +6,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/imilchev/rpi-feeder/pkg/config"
-	"github.com/imilchev/rpi-feeder/pkg/db"
-	dbm "github.com/imilchev/rpi-feeder/pkg/db/model"
-	"github.com/imilchev/rpi-feeder/pkg/mqtt"
+	"github.com/imilchev/rpi-feeder/pkg/feeder/config"
+	"github.com/imilchev/rpi-feeder/pkg/feeder/db"
+	dbm "github.com/imilchev/rpi-feeder/pkg/feeder/db/model"
+	"github.com/imilchev/rpi-feeder/pkg/feeder/mqtt"
+	"github.com/imilchev/rpi-feeder/pkg/feeder/servo"
 	"github.com/imilchev/rpi-feeder/pkg/mqtt/model"
-	"github.com/imilchev/rpi-feeder/pkg/servo"
 	"github.com/imilchev/rpi-feeder/pkg/utils"
 	"go.uber.org/zap"
 )

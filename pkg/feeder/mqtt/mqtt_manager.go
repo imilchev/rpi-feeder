@@ -9,7 +9,8 @@ import (
 
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
-	"github.com/imilchev/rpi-feeder/pkg/config"
+	"github.com/imilchev/rpi-feeder/pkg/feeder/config"
+	"github.com/imilchev/rpi-feeder/pkg/mqtt"
 	"github.com/imilchev/rpi-feeder/pkg/mqtt/model"
 	"go.uber.org/zap"
 )
@@ -51,7 +52,7 @@ func NewMqttManager(cfg config.MqttConfig, fh FeedHandler) (MqttManager, error) 
 
 			if _, err := cm.Subscribe(context.Background(), &paho.Subscribe{
 				Subscriptions: map[string]paho.SubscribeOptions{
-					feedTopic(cfg.ClientId): {QoS: byte(2)},
+					mqtt.FeedTopic(&cfg.ClientId): {QoS: byte(2)},
 				},
 			}); err != nil {
 				zap.S().Errorf("Failed to subscribe (%v). This is likely to mean no messages will be received.", err)
@@ -80,7 +81,7 @@ func NewMqttManager(cfg config.MqttConfig, fh FeedHandler) (MqttManager, error) 
 	if err != nil {
 		return nil, err
 	}
-	pahoCfg.SetWillMessage(statusTopic(cfg.ClientId), willData, byte(1), true)
+	pahoCfg.SetWillMessage(mqtt.StatusTopic(&cfg.ClientId), willData, byte(1), true)
 
 	// Connect to the broker
 	cm, err := autopaho.NewConnection(context.Background(), pahoCfg)
@@ -119,7 +120,7 @@ func (m *mqttManager) SendFeedLog(msg model.FeedLogCollectionMessage) error {
 	}
 
 	_, err = m.c.Publish(context.Background(), &paho.Publish{
-		Topic:   feedLogTopic(m.clientId),
+		Topic:   mqtt.FeedLogTopic(&m.clientId),
 		QoS:     byte(2),
 		Payload: data,
 	})
@@ -133,7 +134,7 @@ func sendStatusMessage(msg model.StatusMessage, cm *autopaho.ConnectionManager, 
 	}
 
 	_, err = cm.Publish(context.Background(), &paho.Publish{
-		Topic:   statusTopic(clientId),
+		Topic:   mqtt.StatusTopic(&clientId),
 		QoS:     byte(1),
 		Retain:  true,
 		Payload: data,

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 
-	"github.com/imilchev/rpi-feeder/pkg/db/model"
+	"github.com/imilchev/rpi-feeder/pkg/feeder/db/model"
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )

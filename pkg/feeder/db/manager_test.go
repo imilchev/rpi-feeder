@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imilchev/rpi-feeder/pkg/db/model"
+	"github.com/imilchev/rpi-feeder/pkg/feeder/db/model"
 	"github.com/stretchr/testify/suite"
 	bolt "go.etcd.io/bbolt"
 )
