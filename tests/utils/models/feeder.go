@@ -1,6 +1,7 @@
 package models
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/imilchev/rpi-feeder/pkg/mqtt/model"
@@ -20,6 +21,15 @@ func RandomFeeder() models.Feeder {
 		f.Status = model.OfflineStatus
 		t := time.Now().UTC().Unix()
 		f.LastOnline = &t
+	}
+	return f
+}
+
+func RandomFeeders() []models.Feeder {
+	var f []models.Feeder
+	count := rand.Intn(10) + 1
+	for i := 0; i < count; i++ {
+		f = append(f, RandomFeeder())
 	}
 	return f
 }

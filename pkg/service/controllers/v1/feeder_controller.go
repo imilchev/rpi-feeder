@@ -29,9 +29,9 @@ func NewFeederController(db *gorm.DB, mqtt mqtt.MqttManager) *FeederController {
 
 func (c *FeederController) RegisterHandlers(a *fiber.App) {
 	route := a.Group(apiGroup)
-	route.Get("/feeder", c.GetFeeders)
-	route.Get("/feeder/:clientId/log", c.GetFeedLogsForFeeder)
-	route.Post("/feeder/:clientId/feed", c.FeedPortions)
+	route.Get("/feeders", c.GetFeeders)
+	route.Get("/feeders/:clientId/logs", c.GetFeedLogsForFeeder)
+	route.Post("/feeders/:clientId/feed", c.FeedPortions)
 }
 
 func (c *FeederController) GetFeeders(ctx *fiber.Ctx) error {
