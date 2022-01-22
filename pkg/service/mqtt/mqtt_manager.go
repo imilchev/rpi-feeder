@@ -50,11 +50,6 @@ func NewMqttManager(
 		ConnectRetryDelay: time.Duration(cfg.ConnectRetryDelay) * time.Second,
 		OnConnectionUp: func(cm *autopaho.ConnectionManager, connAck *paho.Connack) {
 			zap.S().Info("MQTT connection is up.")
-			// msg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OnlineStatus}
-			// if err := sendStatusMessage(msg, cm, cfg.ClientId); err != nil {
-			// 	zap.S().Errorf("Failed to send status message. %v", err)
-			// 	return
-			// }
 
 			if _, err := cm.Subscribe(context.Background(), &paho.Subscribe{
 				Subscriptions: map[string]paho.SubscribeOptions{
@@ -83,13 +78,6 @@ func NewMqttManager(
 	}
 	pahoCfg.SetUsernamePassword(cfg.Username, []byte(cfg.Password))
 
-	// willMsg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OfflineStatus}
-	// willData, err := json.Marshal(willMsg)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// pahoCfg.SetWillMessage(mqtt.StatusTopic(&cfg.ClientId), willData, byte(1), true)
-
 	// Connect to the broker
 	cm, err := autopaho.NewConnection(context.Background(), pahoCfg)
 	if err != nil {
@@ -106,11 +94,6 @@ func NewMqttManager(
 }
 
 func (m *mqttManager) Stop() error {
-	// msg := model.StatusMessage{SoftwareVersion: "dev", Status: model.OfflineStatus}
-	// if err := sendStatusMessage(msg, m.c, m.clientId); err != nil {
-	// 	return err
-	// }
-
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	err := m.c.Disconnect(ctx)

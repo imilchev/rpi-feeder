@@ -45,6 +45,15 @@ tasks:
     vars:
       UNIT_TEST_PACKAGES: ./pkg/...
 
+  test:ci:
+    desc: Test the code in a CI environment. Makes sure that a PostgreSQL instance is running in Podman. Output test report as JSON and XML in output/.
+    cmds:
+      - mkdir -p output/
+      - go install gotest.tools/gotestsum@latest
+      - cmd: gotestsum --junitfile output/tests.xml --jsonfile output/tests.json -- -p 1 -coverprofile=output/coverage.out ./...
+        ignore_error: true
+    silent: false
+
   install:migrate:
     desc: Installs migrate package. Needed to be able to use the migrate CLI.
     cmds:

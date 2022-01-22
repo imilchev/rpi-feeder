@@ -4,27 +4,51 @@ on:
     branches:
       - main
   pull_request:
+permissions:
+  contents: read
+  # Optional: allow read access to pull request. Use with `only-new-issues` option.
+  # pull-requests: read
 
 jobs:
-  build:
-    name: Build
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/imilchev/go-devcontainer:1.17.5
     steps:
       - uses: actions/checkout@v2
 
-      - name: Lint
-        run: task lint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.43
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14.1-alpine3.15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: SuperSecret
+    container:
+      image: ghcr.io/imilchev/go-devcontainer:1.17.6
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v2
 
       - name: Build
         run: task build
 
       - name: Test
-        run: task test
+        run: task test:ci
 
-      - name: Upload coverage
-        uses: actions/upload-artifact@v2
+      - uses: dorny/test-reporter@v1
+        if: success() || failure()   
         with:
-          name: unit-test-coverage
-          path: output/coverage.html
+          name: Report test results      # Name of the check run which will be created
+          path: 'output/tests.xml'       # Path to test results (inside artifact .zip)
+          reporter: java-junit           # Format of test results

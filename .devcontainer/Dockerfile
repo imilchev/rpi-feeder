@@ -1,5 +1,5 @@
 
-FROM golang:1.17.5-alpine
+FROM golang:1.17.6-alpine
 
 RUN apk --no-cache add curl git zsh sudo
 
