@@ -49,8 +49,8 @@ func (r *feedLogsRepository) CreateFeedLogs(f []models.FeedLog) ([]models.FeedLo
 
 func (r *feedLogsRepository) GetLogsForFeeder(clientId string) (f []models.FeedLog, err error) {
 	var feedLogs []dbm.FeedLog
-	if res := r.db.Where("client_id", clientId).Find(&feedLogs); res.Error != nil {
-		return f, res.Error
+	if res := r.db.Where("client_id", clientId).Find(&feedLogs); res.RowsAffected == 0 {
+		return f, models.NewDoesNotExistError("Feeder", "ClientId", clientId)
 	}
 
 	apiFeedLog := &models.FeedLog{}

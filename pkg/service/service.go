@@ -135,7 +135,7 @@ func (s *Service) updateFeederStatus(clientId string, msg model.StatusMessage) e
 		Status:          msg.Status,
 	}
 	if msg.Status == model.OfflineStatus {
-		t := time.Now()
+		t := time.Now().UTC().Unix()
 		m.LastOnline = &t
 	}
 
@@ -162,7 +162,7 @@ func (s *Service) storeFeedLogs(clientId string, msg model.FeedLogCollectionMess
 		f = append(f, models.FeedLog{
 			ClientId:  clientId,
 			Portions:  m.Portions,
-			Timestamp: m.Timestamp,
+			Timestamp: m.Timestamp.UTC().Unix(),
 		})
 	}
 

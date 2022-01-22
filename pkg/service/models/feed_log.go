@@ -1,10 +1,8 @@
 package models
 
-import "time"
-
 type FeedLog struct {
 	Id        int
-	ClientId  string    `validate:"required"`
-	Portions  uint      `validate:"required,gt=0"`
-	Timestamp time.Time `validate:"required"`
+	ClientId  string `validate:"required,max=60"`
+	Portions  uint   `validate:"required,gt=0"`
+	Timestamp int64  `validate:"required"`
 }

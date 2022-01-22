@@ -17,12 +17,12 @@ func (f FeedLog) ToApi(m *models.FeedLog) {
 	m.Id = f.Id
 	m.ClientId = f.ClientId
 	m.Portions = f.Portions
-	m.Timestamp = f.Timestamp
+	m.Timestamp = f.Timestamp.UTC().Unix()
 }
 
 func (f *FeedLog) FromApi(m models.FeedLog) {
 	f.Id = m.Id
 	f.ClientId = m.ClientId
 	f.Portions = m.Portions
-	f.Timestamp = m.Timestamp
+	f.Timestamp = time.Unix(m.Timestamp, 0)
 }

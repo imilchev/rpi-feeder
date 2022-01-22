@@ -7,7 +7,6 @@ import (
 	dbm "github.com/imilchev/rpi-feeder/pkg/service/db/models"
 	"github.com/imilchev/rpi-feeder/pkg/service/models"
 	"github.com/imilchev/rpi-feeder/tests/utils"
-	"github.com/stretchr/testify/suite"
 )
 
 func RandomFeeder() models.Feeder {
@@ -19,7 +18,7 @@ func RandomFeeder() models.Feeder {
 	}
 	if isOffline {
 		f.Status = model.OfflineStatus
-		t := time.Now().UTC()
+		t := time.Now().UTC().Unix()
 		f.LastOnline = &t
 	}
 	return f
@@ -40,10 +39,10 @@ func RandomDbFeeder() dbm.Feeder {
 	return f
 }
 
-func CompareFeedersLastOnline(suite suite.Suite, expected, actual *models.Feeder) {
-	if expected.LastOnline != nil {
-		suite.Equal(expected.LastOnline.Unix(), actual.LastOnline.Unix())
-		expected.LastOnline = nil
-		actual.LastOnline = nil
-	}
-}
+// func CompareFeedersLastOnline(suite suite.Suite, expected, actual *models.Feeder) {
+// 	if expected.LastOnline != nil {
+// 		//suite.Equal(expected.LastOnline.Unix(), actual.LastOnline.Unix())
+// 		expected.LastOnline = nil
+// 		actual.LastOnline = nil
+// 	}
+// }
