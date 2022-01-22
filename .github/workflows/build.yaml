@@ -31,12 +31,20 @@ jobs:
           - 5432:5432
         env:
           POSTGRES_PASSWORD: SuperSecret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     container:
       image: ghcr.io/imilchev/go-devcontainer:1.17.6
     permissions:
       id-token: write
       contents: read
       checks: write
+    env:
+      FEEDER_TEST_DB_HOST: postgres
     steps:
       - uses: actions/checkout@v2
 

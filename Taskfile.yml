@@ -37,10 +37,15 @@ tasks:
       - golangci-lint run
     silent: false
 
+  test:db:
+    cmds:
+      - docker run -e POSTGRES_PASSWORD=SuperSecret -p 5432:5432 -d --name feeder-postgres postgres:14.1-alpine3.15
+    silent: false
+
   test:
     cmds:
       - mkdir -p output
-      - CGO_ENABLED=0 go test -v -coverprofile=output/c.out -timeout 120s {{.UNIT_TEST_PACKAGES}}
+      - CGO_ENABLED=0 go test -v -coverprofile=output/c.out -p 1 -timeout 120s {{.UNIT_TEST_PACKAGES}}
       - go tool cover -html=output/c.out -o ./output/coverage.html
     vars:
       UNIT_TEST_PACKAGES: ./pkg/...

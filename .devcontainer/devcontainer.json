@@ -1,7 +1,6 @@
 {
 	"name": "Go",
-	"dockerFile": "./Dockerfile",
-    "context": ".",
+	"image": "ghcr.io/imilchev/go-devcontainer:1.17.6",
 	"settings": {
 		"go.useLanguageServer": true
 	},
@@ -11,5 +10,9 @@
 	],
 	"mounts": [
 		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-	]
+	],
+	"containerEnv": {
+		"FEEDER_TEST_DB_HOST": "host.docker.internal",
+		"FEEDER_TEST_JWT_PUBLIC_KEY_PATH": "${workspaceFolder}/authd_public.pem"
+	}
 }
