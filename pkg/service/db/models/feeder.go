@@ -21,7 +21,10 @@ func (f Feeder) ToApi(m *models.Feeder) {
 	m.ClientId = f.ClientId
 	m.SoftwareVersion = f.SoftwareVersion
 	m.Status = model.Status(f.Status)
-	m.LastOnline = f.LastOnline
+	if f.LastOnline != nil {
+		t := f.LastOnline.UTC()
+		m.LastOnline = &t
+	}
 }
 
 func (f *Feeder) FromApi(m models.Feeder) {
@@ -29,4 +32,8 @@ func (f *Feeder) FromApi(m models.Feeder) {
 	f.SoftwareVersion = m.SoftwareVersion
 	f.Status = string(m.Status)
 	f.LastOnline = m.LastOnline
+	if m.LastOnline != nil {
+		t := m.LastOnline.UTC()
+		f.LastOnline = &t
+	}
 }

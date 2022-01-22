@@ -11,3 +11,7 @@ func RandString(n int) string {
 	}
 	return string(b)
 }
+
+func RandBool() bool {
+	return rand.Intn(100) < 50
+}

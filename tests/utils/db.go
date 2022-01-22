@@ -94,8 +94,8 @@ func GetTestDb() (*gorm.DB, error) {
 }
 
 func CleanupDb(db *gorm.DB) error {
-	return db.Exec(`TRUNCATE TABLE "clusters";
-					TRUNCATE TABLE "users";`).Error
+	return db.Exec(`TRUNCATE TABLE "feed_logs" CASCADE;
+					TRUNCATE TABLE "feeders" CASCADE;`).Error
 }
 
 func GetMigrationsCount() (uint, error) {

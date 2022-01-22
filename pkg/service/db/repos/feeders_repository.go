@@ -1,8 +1,6 @@
 package repos
 
 import (
-	"errors"
-
 	dbm "github.com/imilchev/rpi-feeder/pkg/service/db/models"
 	"github.com/imilchev/rpi-feeder/pkg/service/models"
 	"github.com/imilchev/rpi-feeder/pkg/utils"
@@ -72,12 +70,8 @@ func (r *feedersRepository) GetFeederByClientId(cId string) (models.Feeder, erro
 
 func (r *feedersRepository) UpdateFeeder(f models.Feeder) (models.Feeder, error) {
 	dbModel := &dbm.Feeder{}
-	if res := r.db.Where("client_id = ?", f.ClientId).First(dbModel); res.Error != nil {
-		err := res.Error
-		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
-			err = models.NewDoesNotExistError("Feeder", "ClientId", f.ClientId)
-		}
-		return models.Feeder{}, err
+	if res := r.db.Where("client_id = ?", f.ClientId).Find(dbModel); res.RowsAffected == 0 {
+		return models.Feeder{}, models.NewDoesNotExistError("Feeder", "ClientId", f.ClientId)
 	}
 
 	dbModel.FromApi(f)
