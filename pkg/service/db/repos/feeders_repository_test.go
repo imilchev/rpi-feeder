@@ -44,12 +44,7 @@ func (suite *FeedersRepositorySuite) TestCreateFeeder() {
 	suite.NoError(suite.r.db.First(fDb, "client_id = ?", f.ClientId).Error)
 	fDb.ToApi(&ff)
 
-	if f.LastOnline != nil {
-		suite.Equal(f.LastOnline.Unix(), ff.LastOnline.Unix())
-		f.LastOnline = nil
-		ff.LastOnline = nil
-	}
-
+	modelUtils.CompareFeedersLastOnline(suite.Suite, &f, &ff)
 	suite.Equal(f, ff)
 }
 
@@ -142,12 +137,8 @@ func (suite *FeedersRepositorySuite) TestGetFeeders() {
 
 	// Compare last online in unix as the nanosecs precision is lost when stored
 	// in the db.
-	for i, f := range expected {
-		if f.LastOnline != nil {
-			suite.Equal(f.LastOnline.Unix(), feeders[i].LastOnline.Unix())
-			expected[i].LastOnline = nil
-			feeders[i].LastOnline = nil
-		}
+	for i := range expected {
+		modelUtils.CompareFeedersLastOnline(suite.Suite, &expected[i], &feeders[i])
 	}
 	// Compare the rest of the properties.
 	suite.ElementsMatch(expected, feeders)
@@ -166,6 +157,7 @@ func (suite *FeedersRepositorySuite) TestGetFeederByClientId() {
 
 	feeder, err := suite.r.GetFeederByClientId(randFeeder.ClientId)
 	suite.NoError(err)
+	modelUtils.CompareFeedersLastOnline(suite.Suite, &randFeeder, &feeder)
 	suite.Equal(randFeeder, feeder)
 }
 
