@@ -1,11 +1,9 @@
-import PropTypes from 'prop-types'
 import styled from '@emotion/styled'
 import { AppBar, Avatar, Badge, Box, IconButton, Toolbar, Tooltip } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import SearchIcon from '@mui/icons-material/Search'
 import { Bell as BellIcon } from '../icons/bell'
 import { UserCircle as UserCircleIcon } from '../icons/user-circle'
-import { Users as UsersIcon } from '../icons/users'
 
 const DashboardNavbarRoot = styled(AppBar)(({ theme }) => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,11 +57,6 @@ export const DashboardNavbar = (props: DashboardNavbarProps) => {
             </IconButton>
           </Tooltip>
           <Box sx={{ flexGrow: 1 }} />
-          <Tooltip title="Contacts">
-            <IconButton sx={{ ml: 1 }}>
-              <UsersIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
           <Tooltip title="Notifications">
             <IconButton sx={{ ml: 1 }}>
               <Badge badgeContent={4} color="primary" variant="dot">
@@ -85,8 +78,4 @@ export const DashboardNavbar = (props: DashboardNavbarProps) => {
       </DashboardNavbarRoot>
     </>
   )
-}
-
-DashboardNavbar.propTypes = {
-  onSidebarOpen: PropTypes.func,
 }
